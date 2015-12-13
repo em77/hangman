@@ -15,8 +15,12 @@ class GameCycler
     @dictionary ||= Dictionary.new(5, 12, "dictionary.txt")
   end
 
+  def game_file_manager
+    @game_file_manager ||= GameFileManager.new
+  end
+
   def game_factory(dictionary_list)
-    Game.new(get_user_input, dictionary_list)
+    Game.new(get_user_input, game_file_manager, dictionary_list)
   end
 
   def start
@@ -24,7 +28,9 @@ class GameCycler
     until self.continue == 'no'
       answer = get_user_input.load_or_new
       if answer == "load"
-        #
+        file_list = game_file_manager.game_file_list
+        game_num = get_user_input.file_selector(file_list)
+        game_file_manager.load_game(file_list[game_num]).do_game
       else
         game_factory(dictionary.dictionary_list).do_game
       end
@@ -33,18 +39,20 @@ class GameCycler
         self.continue = get_user_input.play_again
       end
     end
-    Message::exit
+    Message::game_exit
   end
 end
 
 class Game
   attr_accessor :get_user_input, :remaining_mistakes, :dictionary_list,
-    :turn_count
-  def initialize(get_user_input, dictionary_list)
+    :turn_count, :game_file_manager, :game_exit
+  def initialize(get_user_input, game_file_manager, dictionary_list)
     @get_user_input = get_user_input
+    @game_file_manager = game_file_manager
     @dictionary_list = dictionary_list
     @remaining_mistakes = 6
     @turn_count = 0
+    @game_exit = false
   end
 
   def executioner
@@ -56,14 +64,16 @@ class Game
   end
 
   def do_solve(word)
-    executioner.word_spaces_finisher if executioner.secret_word == word
+    if executioner.secret_word == word
+      executioner.word_spaces_finisher
+    else
+      self.remaining_mistakes -= 1
+    end
   end
 
   def game_flow
     Display::current_word_spaces(executioner.word_spaces, remaining_mistakes,
       executioner.guess_array)
-    puts "remaining_mistakes: #{remaining_mistakes}"
-    puts executioner.secret_word
     decision = get_user_input.get_decision
     case decision
     when "guess"
@@ -72,27 +82,32 @@ class Game
     when "solve"
       do_solve(get_user_input.get_word)
     when "save"
-      #
+      file_name = get_user_input.get_file_name
+      Message::game_saved if game_file_manager.save_game(self, file_name)
+      self.game_exit = true
+    when "exit"
+      self.game_exit = true
     end
     self.turn_count += 1
   end
 
   def do_game
     until (remaining_mistakes == 0) || (executioner.word_spaces.join == \
-      executioner.secret_word)
+      executioner.secret_word || game_exit)
       game_flow
     end
     if remaining_mistakes == 0
-      Message::game_lost(6)
-    else
-      Message::game_won(turn_count)
+      executioner.word_spaces_finisher
+      Message::game_lost(6, executioner.word_spaces)
+    elsif executioner.word_spaces.join == executioner.secret_word
+      Message::game_won(turn_count, executioner.word_spaces)
     end
   end
 end
 
 class GetUserInput
   def get_decision
-    choices_array = ["guess", "solve", "save"]
+    choices_array = ["guess", "solve", "save", "exit"]
     decision = nil
     until choices_array.include?(decision)
       decision = Prompt::playing_decision(choices_array)
@@ -140,6 +155,16 @@ class GetUserInput
       name = Prompt::file_name
     end
     name
+  end
+
+  def file_selector(file_list)
+    choices_array = (1..file_list.length).to_a
+    decision = nil
+    until choices_array.include?(decision)
+      decision = Prompt::file_selector(file_list, choices_array)
+      decision = decision.to_i
+    end
+    decision - 1
   end
 end
 

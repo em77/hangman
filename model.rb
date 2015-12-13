@@ -1,3 +1,5 @@
+require 'yaml'
+
 class Dictionary
   attr_accessor :dictionary_list
   def initialize(min_word_length, max_word_length, dictionary_file)
@@ -53,13 +55,18 @@ class Executioner
 end
 
 class GameFileManager
-  def save_game(game_hash, file_name)
-    File.open("#{file_name}.txt".gsub(/\s+/, ''), 'w') do |file|
-      file.write(game_hash)
+  def save_game(game_object, file_name)
+    File.open("#{file_name}.yaml".gsub(/\s+/, ''), 'w') do |file|
+      file.write(game_object.to_yaml)
     end
   end
 
   def game_file_list
-    #
+    Dir.glob("*.yaml")
+  end
+
+  def load_game(file_name)
+    file = File.read("#{file_name}")
+    YAML::load(file)
   end
 end
