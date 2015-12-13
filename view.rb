@@ -8,6 +8,13 @@ module Display
     print "Your guesses: #{guess_array.join(", ")}\n\n"
     print "#{remaining_turns} mistakes remaining\n\n"
   end
+
+  def self.file_lister(list)
+    puts
+    list.each_with_index do |name, index|
+      puts "#{index + 1}   #{name}"
+    end
+  end
 end
 
 module Prompt
@@ -43,15 +50,8 @@ module Prompt
     gets.chomp.downcase
   end
 
-  def self.file_lister(list)
-    puts
-    list.each_with_index do |name, index|
-      puts "#{index + 1}   #{name}"
-    end
-  end
-
   def self.file_selector(file_list, choices_array)
-    file_lister(file_list)
+    Display::file_lister(file_list)
     print "\n\nPlease enter the number of the game file you wish to load."
     decision(choices_array)
   end
@@ -85,6 +85,11 @@ module Message
 
   def self.game_saved
     puts "\n\nYour game has been saved!"
+  end
+
+  def self.no_games_found
+    print "\n\nThere are no saved game files in the current directory."
+    print "\nPut your game files in the current directory and try again."
   end
 
   def self.game_won(turn_count, word_spaces)

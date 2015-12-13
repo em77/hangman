@@ -43,7 +43,7 @@ class Executioner
         self.word_spaces[index] = ltr
       end
     end
-    self.guess_array << letter
+    self.guess_array << letter.upcase
     letter_found
   end
 

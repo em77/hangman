@@ -19,8 +19,22 @@ class GameCycler
     @game_file_manager ||= GameFileManager.new
   end
 
-  def game_factory(dictionary_list)
-    Game.new(get_user_input, game_file_manager, dictionary_list)
+  def executioner_factory
+    Executioner.new(dictionary.dictionary_list)
+  end
+
+  def game_factory(executioner)
+    Game.new(get_user_input, game_file_manager, executioner)
+  end
+
+  def do_load_game
+    file_list = game_file_manager.game_file_list
+    if file_list.empty?
+      Message::no_games_found
+    else
+      game_num = get_user_input.file_selector(file_list)
+      game_file_manager.load_game(file_list[game_num]).do_game
+    end
   end
 
   def start
@@ -28,11 +42,9 @@ class GameCycler
     until self.continue == 'no'
       answer = get_user_input.load_or_new
       if answer == "load"
-        file_list = game_file_manager.game_file_list
-        game_num = get_user_input.file_selector(file_list)
-        game_file_manager.load_game(file_list[game_num]).do_game
+        do_load_game
       else
-        game_factory(dictionary.dictionary_list).do_game
+        game_factory(executioner_factory).do_game
       end
       self.continue = nil
       until self.continue == 'yes' || self.continue == 'no'
@@ -44,19 +56,15 @@ class GameCycler
 end
 
 class Game
-  attr_accessor :get_user_input, :remaining_mistakes, :dictionary_list,
+  attr_accessor :get_user_input, :remaining_mistakes, :executioner,
     :turn_count, :game_file_manager, :game_exit
-  def initialize(get_user_input, game_file_manager, dictionary_list)
+  def initialize(get_user_input, game_file_manager, executioner)
     @get_user_input = get_user_input
     @game_file_manager = game_file_manager
-    @dictionary_list = dictionary_list
+    @executioner = executioner
     @remaining_mistakes = 6
     @turn_count = 0
     @game_exit = false
-  end
-
-  def executioner
-    @executioner ||= Executioner.new(dictionary_list)
   end
 
   def do_letter(letter)
